@@ -35,17 +35,24 @@ pub extern "C" fn zstd_writer_open(zstd_file_path: *const c_char, level: i32) ->
 pub extern "C" fn zstd_writer_write(writer: *mut ZstdWriter, content: *const u8, len: usize) -> i32 {
     unsafe {
 	let encoder: *mut Encoder<File> = writer as *mut Encoder<File>;
-	let content = std::ptr::slice_from_raw_parts(content, len);
-	let content_ref: &[u8] = &(*content);
-	 match (*encoder).write_all(content_ref) {
-	    Ok(_) => { 
-		0
+	let content = std::slice::from_raw_parts(content, len);
+	match encoder.as_mut() {
+	    Some(encoder) => {
+		match encoder.write_all(content) {
+		    Ok(_) => { 
+			0
+		    },
+		    Err(e) => {
+			eprintln!("Cannot write to ZSTD writer: {:?}", e);
+			-1
+		    },
+		}
 	    },
-	    Err(e) => {
-		eprintln!("Cannot write to ZSTD writer: {:?}", e);
-		-1
-	    },
-	}
+	    None => {
+		eprintln!("Writer is null");
+		-2
+	    }
+	}	
     }
 }
 
